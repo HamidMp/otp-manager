@@ -64,12 +64,13 @@ class OTPManagerMiddleware
 
 
         foreach ($guards as $guard) {
-            if ($this->auth->guard($guard)->check()) {
-                return OTPManager::checkAuthentication($request, $guard);
+            $res=OTPManager::checkAuthentication($request, $guard);
+            if (!empty($res)) {
+                return $res;
             }
         }
 
-        return;
+        return false;
         $this->unauthenticated($request, $guards);
     }
 
