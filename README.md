@@ -1,8 +1,17 @@
 ## OTP Manager (Laravel library)
 
 **OTP Manager** is a Laravel OTP library.  
-Verification user by Once Time Password via SMS or email or anything else.
-You can choose various type of authentication method like cookie or request-header.   
+Verification user by One Time Password via SMS or email or anything else.
+You can choose various type of authentication method like cookie or request-header.
+
+#### some features:
+You can create **OTP link** and sending through **email** or create **OTP PIN code** and sending through **SMS** or notification etc.
+You can choosing between Cookie or database for storage
+_Note: In this tools you can using verification even without user._
+
+## One Time Password
+A one-time password (OTP), also known as one-time PIN or dynamic password, is a password that is valid for only one login session or transaction, on a computer system or other digital device.
+
 
 ## Installation
 
