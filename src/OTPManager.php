@@ -40,6 +40,7 @@ class OTPManager
     private $shouldEncodePassword;
     private $verificationLifeTime;//minutes
     private $tokenFieldSource;//cookie or session or request-header or request-parameter
+    private $tokenFieldName;//field name of cookie or session or request-header or request-parameter
     private $singleDevice;//new verification will remove previous verifications
     private $fix_key;//for hash token
     private $passwordLength;
@@ -47,13 +48,16 @@ class OTPManager
     private $user_model;
     private $messageProvider;
 
-    private $cookie_field_name='otp_cookie';
+    //changed to tokenFieldName  <== private $cookie_field_name='otp_cookie';
 
     const OTP_STATUS_CREATED=0;
     const OTP_STATUS_WAIT=1;
     const OTP_STATUS_VERIFIED=2;
     const OTP_STATUS_ERROR=4;
     const OTP_STATUS_EXPIRED=5;
+
+    const OTP_TOKEN_SOURCE_HEADER='header';
+    const OTP_TOKEN_SOURCE_COOKIE='cookie';
 
 
     public function __construct(){
@@ -78,7 +82,8 @@ class OTPManager
         $this->shouldEncodePassword=config('otpmanager.encode_password',false);
         $this->onlyDigitPassword=config('otpmanager.only_digit_password',true);
         $this->verificationLifeTime=config('otpmanager.verification_lifetime',60*24);//minutes - zero for no expiration
-        $this->tokenFieldSource=config('otpmanager.token_field_source','cookie');
+        $this->tokenFieldSource=config('otpmanager.token_field_source',self::OTP_TOKEN_SOURCE_COOKIE);
+        $this->tokenFieldName=config('otpmanager.token_field_name','otp_token');
         $this->singleDevice=config('otpmanager.single_device',false);
         $this->fix_key=config('otpmanager.key','OTPManager');
         $this->guard=config('otpmanager.guard','web');
@@ -93,8 +98,11 @@ class OTPManager
         $userToken=null;
 
         switch ($this->tokenFieldSource){
-            case 'cookie':
-                $userToken=$request->cookie($this->cookie_field_name,null);
+            case self::OTP_TOKEN_SOURCE_HEADER:
+                $userToken=data_get($request,$this->tokenFieldName,null);
+                break;
+            case self::OTP_TOKEN_SOURCE_COOKIE:
+                $userToken=$request->cookie($this->tokenFieldName,null);
                 break;
         }
 
@@ -193,7 +201,7 @@ class OTPManager
         //DELETED <== if no cookie or not valid token then create new token store new cookie
         switch ($manager->tokenFieldSource){
             case 'cookie':
-                Cookie::queue(Cookie::forget($manager->cookie_field_name));
+                Cookie::queue(Cookie::forget($manager->tokenFieldName));
                 break;
         }
         //DELETED <== $manager->generateAndStoreNewUserToken($request);
@@ -230,8 +238,8 @@ class OTPManager
         Auth::guard($manager->guard)->logout();
 
         switch ($manager->tokenFieldSource){
-            case 'cookie':
-                Cookie::queue(Cookie::forget($manager->cookie_field_name));
+            case self::OTP_TOKEN_SOURCE_COOKIE:
+                Cookie::queue(Cookie::forget($manager->tokenFieldName));
                 break;
         }
 
@@ -267,8 +275,8 @@ class OTPManager
         $t=$this->encryptPassword($t);
 
         switch ($this->tokenFieldSource){
-            case 'cookie':
-                Cookie::queue($this->cookie_field_name,$t,$this->verificationLifeTime);
+            case self::OTP_TOKEN_SOURCE_COOKIE:
+                Cookie::queue($this->tokenFieldName,$t,$this->verificationLifeTime);
                 break;
         }
 
@@ -342,6 +350,11 @@ class OTPManager
         $userContact=$user->{$manager->userContact}??'';
         if(empty($userContact))
             $userContact=$manager->findUserContactFromRequest($request);
+
+        if(empty($userContact)){
+            //todo message
+            return false;
+        }
 
         //check last otp try
         if($manager->isDuplicateRequest($userToken, $userContact)!==false){
