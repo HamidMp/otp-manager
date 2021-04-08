@@ -6,7 +6,7 @@ You can choose various type of authentication method like cookie or request-head
 
 #### some features:
 You can create **OTP link** and sending through **email** or create **OTP PIN code** and sending through **SMS** or notification etc.
-You can choosing between Cookie or database for storage
+You can choose between __cookie__ or __request-header__ (localstorage or fix variable) in client-side.  
 _Note: In this tools you can using verification even without user._
 
 ## One Time Password
@@ -93,14 +93,6 @@ A one-time password (OTP), also known as one-time PIN or dynamic password, is a 
     // App/Http/Controllers/SiteController
     
     OTPManager::generateAndSendNewOTP($request);
-    ```
-   
-* Checking user PIN code
-
-    ```php
-    // App/Http/Controllers/SiteController
-    
-    $result = OTPManager::checkUserOTPAndVerification($request, $request->code);
     ```
    
 * Checking user PIN code

@@ -130,6 +130,19 @@ class OTPManager
         return false;
     }
 
+    private function isPasswordExpired(OTPassword $modelOTP):bool{
+        if(empty($this->limitTimeToAnswer))
+            return false;
+        $createDate=$modelOTP->created_at??'';
+        $createDate=Carbon::parse($createDate);
+        $diff=$createDate->diffInSeconds(Carbon::now());
+        if($diff>$this->limitTimeToAnswer){
+            return true;
+        }
+
+        return false;
+    }
+
     private function doesOTPModelVerified(OTPassword $modelOTP){
         if(empty($modelOTP))
             return false;
@@ -220,6 +233,11 @@ class OTPManager
         return $otpModel->save();
     }
 
+    private function changeOTPModelStatus($otpModel,$status){
+        $otpModel->status=$status;
+        $otpModel->save();
+    }
+
     public static function logout(Request $request){
 
         //todo expire otpModel
@@ -230,8 +248,7 @@ class OTPManager
 
         if($modelOTP!==false){
             if ($modelOTP->hasVerified() || $modelOTP->isReady()) {
-                $modelOTP->status=self::OTP_STATUS_EXPIRED;
-                $modelOTP->save();
+                $manager->changeOTPModelStatus($modelOTP, self::OTP_STATUS_EXPIRED);
             }
         }
 
@@ -519,8 +536,7 @@ class OTPManager
         if(empty($this->maximumTryToAnswer))
             return;
         if($otpModel->try>=$this->maximumTryToAnswer){
-            $otpModel->status=self::OTP_STATUS_EXPIRED;
-            $otpModel->save();
+            $this->changeOTPModelStatus($otpModel, self::OTP_STATUS_EXPIRED);
         }
     }
 
@@ -535,6 +551,17 @@ class OTPManager
 
         if(!$otpModel->isReady()){
             //maybe expired or used before
+            return false;
+        }
+
+        //todo check delay
+        if($manager->isPasswordExpired($otpModel)){
+            //password has expired
+
+            $manager->changeOTPModelStatus($otpModel, self::OTP_STATUS_EXPIRED);
+
+            //todo message
+
             return false;
         }
 
