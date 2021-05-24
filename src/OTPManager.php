@@ -117,6 +117,25 @@ class OTPManager
         return $modelOTP;
     }
 
+    /**
+     * @param $user_contact
+     * @return false|Model|OTPassword
+     */
+    private function findWaitedOTPasswordModelByUserContact($user_contact){
+        if(empty($user_contact))
+            return false;
+
+        $otpModel=$this->getOTPModelRowsQuery()
+            ->where('user_contact',$user_contact)
+            ->where('status',self::OTP_STATUS_WAIT)
+            ->first();
+        if($otpModel==null){
+            return false;
+        }
+
+        return $otpModel;
+    }
+
     private function isExpired(OTPassword $modelOTP):bool{
         if(empty($this->verificationLifeTime))
             return false;
@@ -555,16 +574,35 @@ class OTPManager
         if(empty($otpModel))
             return false;
 
+        return $manager->checkUserOTPAndVerificationByOTPModel($otpModel, $user_answer);
+    }
+
+    public static function checkUserOTPAndVerificationByUserContact($user_contact, $user_answer){
+
+        $manager=new OTPManager();
+
+        //find userToken and its otpassword-model
+        $otpModel=$manager->findWaitedOTPasswordModelByUserContact($user_contact);
+        if(empty($otpModel))
+            return false;
+
+        return $manager->checkUserOTPAndVerificationByOTPModel($otpModel, $user_answer);
+    }
+
+    private function checkUserOTPAndVerificationByOTPModel(OTPassword $otpModel, $user_answer){
+        if(empty($otpModel))
+            return false;
+
         if(!$otpModel->isReady()){
             //maybe expired or used before
             return false;
         }
 
         //todo check delay
-        if($manager->isPasswordExpired($otpModel)){
+        if($this->isPasswordExpired($otpModel)){
             //password has expired
 
-            $manager->changeOTPModelStatus($otpModel, self::OTP_STATUS_EXPIRED);
+            $this->changeOTPModelStatus($otpModel, self::OTP_STATUS_EXPIRED);
 
             //todo message
 
@@ -572,18 +610,18 @@ class OTPManager
         }
 
         //check user password is correct or not
-        if($manager->checkPassword($otpModel,$user_answer)!==true){
+        if($this->checkPassword($otpModel,$user_answer)!==true){
 
             //count wrong answer
-            $manager->checkWrongTryLimitation($otpModel);
+            $this->checkWrongTryLimitation($otpModel);
 
             return false;
         }
 
         //if otp was correct remove previous verified rows (single-mode or duplicate-mode)
-        if($manager->singleDevice){
+        if($this->singleDevice){
             //todo must check (user_contact OR user_id) each one
-            $res=$manager->getOTPModelRowsQuery()->where([['user_contact',$otpModel->user_contact],['status',self::OTP_STATUS_VERIFIED]])
+            $res=$this->getOTPModelRowsQuery()->where([['user_contact',$otpModel->user_contact],['status',self::OTP_STATUS_VERIFIED]])
                 ->update(['status'=>self::OTP_STATUS_EXPIRED]);
         }
 
@@ -593,9 +631,10 @@ class OTPManager
         $otpModel->verified_at=Carbon::now();
         $otpModel->save();
 
-        $manager->doLoggedInUser($otpModel);
+        $this->doLoggedInUser($otpModel);
 
         return $otpModel;
+
     }
 
     private function encryptPassword($password){
