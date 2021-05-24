@@ -265,6 +265,8 @@ class OTPManager
     private function saveUserTokenInUser($user, $userToken){
         if(empty($user))
             return false;
+        if(empty($this->userToken))
+            return false;//ignore user model
         $user->{$this->userToken}=$userToken;
         return $user->save();
     }
@@ -282,14 +284,18 @@ class OTPManager
         return $user;
     }
 
-    private function generateAndStoreNewUserToken(Request $request){
+    private function generateAndStoreNewUserToken(Request $request, $preUserToken=null/*if we want to use our token for user*/){
         //generate new user-token
         //store user-token in cookie or table or session
 
-        //token formula:  fix_key + ip + datetime + random
-        $t=$this->fix_key.$request->ip().date('Ymd_His').Str::random(20);
-        //$t=hash('sha256', $t);
-        $t=$this->encryptPassword($t);
+        if(empty($preUserToken)) {
+            //token formula:  fix_key + ip + datetime + random
+            $t = $this->fix_key . $request->ip() . date('Ymd_His') . Str::random(20);
+            //$t=hash('sha256', $t);
+            $t = $this->encryptPassword($t);
+        }else{
+            $t=$preUserToken;
+        }
 
         switch ($this->tokenFieldSource){
             case self::OTP_TOKEN_SOURCE_COOKIE:
@@ -352,14 +358,14 @@ class OTPManager
         return false;
     }
 
-    public static function generateAndSendNewOTP(Request $request, $user=null){
+    public static function generateAndSendNewOTP(Request $request, $user=null, $preUserToken=null/*if we want to use our token for user*/){
 
         $manager=new OTPManager();
 
         //$user->{$manager->userToken}
-        $userToken=$manager->findUserToken($request);
+        $userToken = $manager->findUserToken($request);
         //generate new userToken in any case
-        $userToken=$manager->generateAndStoreNewUserToken($request);
+        $userToken = $manager->generateAndStoreNewUserToken($request, $preUserToken);
 
         $ip=$request->ip();
 
