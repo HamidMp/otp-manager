@@ -12,6 +12,8 @@ _Note: In this tools you can using verification even without user._
 ## One Time Password
 A one-time password (OTP), also known as one-time PIN or dynamic password, is a password that is valid for only one login session or transaction, on a computer system or other digital device.
 
+## Token types:
+bearer, cookie, session or request 
 
 ## Installation
 
