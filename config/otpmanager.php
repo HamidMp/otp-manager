@@ -6,7 +6,7 @@ return [
 
     'user_model'=>App\Models\User::class,
 
-    'token_field_source'=> 'header',
+    'token_field_source'=> 'header',//bearer, cookie, session, header
     'token_field_name'=>'otp_token',
 
     'user_contact'=> 'mobile',//will use for duplicate check and limitations and sending message

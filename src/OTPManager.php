@@ -56,8 +56,10 @@ class OTPManager
     const OTP_STATUS_ERROR=4;
     const OTP_STATUS_EXPIRED=5;
 
-    const OTP_TOKEN_SOURCE_HEADER='header';
+    const OTP_TOKEN_SOURCE_BEARER='bearer';
+    const OTP_TOKEN_SOURCE_HEADER='header';//request header or content
     const OTP_TOKEN_SOURCE_COOKIE='cookie';
+    const OTP_TOKEN_SOURCE_SESSION='session';
 
 
     public function __construct(){
@@ -98,11 +100,19 @@ class OTPManager
         $userToken=null;
 
         switch ($this->tokenFieldSource){
-            case self::OTP_TOKEN_SOURCE_HEADER:
-                $userToken=data_get($request,$this->tokenFieldName,null);
+            case self::OTP_TOKEN_SOURCE_BEARER:
+                $userToken=$request->bearerToken();
                 break;
             case self::OTP_TOKEN_SOURCE_COOKIE:
                 $userToken=$request->cookie($this->tokenFieldName,null);
+                break;
+            case  self::OTP_TOKEN_SOURCE_SESSION:
+                $userToken=$request->session()->get($this->tokenFieldName,null);
+                break;
+
+            default:
+                //case self::OTP_TOKEN_SOURCE_HEADER:
+                $userToken=data_get($request,$this->tokenFieldName,null);
                 break;
         }
 
@@ -277,6 +287,9 @@ class OTPManager
             case self::OTP_TOKEN_SOURCE_COOKIE:
                 Cookie::queue(Cookie::forget($manager->tokenFieldName));
                 break;
+            case  self::OTP_TOKEN_SOURCE_SESSION:
+                $request->session()->forget($manager->tokenFieldName);
+                break;
         }
 
     }
@@ -319,6 +332,9 @@ class OTPManager
         switch ($this->tokenFieldSource){
             case self::OTP_TOKEN_SOURCE_COOKIE:
                 Cookie::queue($this->tokenFieldName,$t,$this->verificationLifeTime);
+                break;
+            case  self::OTP_TOKEN_SOURCE_SESSION:
+                $request->session()->put($this->tokenFieldName,$t);
                 break;
         }
 
