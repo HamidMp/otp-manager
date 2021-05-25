@@ -556,6 +556,17 @@ class OTPManager
         return null;
     }
 
+    public static function getCurrentVerifiedUser_Contact(Request $request){
+        //get user_contact from request if verified
+        $manager=new OTPManager();
+        $modelOTP=$manager->getVerifiedOTPModelFromRequest($request);
+        if($modelOTP!==false){
+            return $modelOTP->user_contact??null;
+        }
+
+        return null;
+    }
+
     private function checkWrongTryLimitation(OTPassword $otpModel){
         $otpModel->try=$otpModel->try??0+1;
         if(empty($this->maximumTryToAnswer))
