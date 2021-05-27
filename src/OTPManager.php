@@ -92,6 +92,10 @@ class OTPManager
         $this->user_model=config('otpmanager.user_model',User::class);
         $this->messageProvider=config('otpmanager.message_provider');
 
+
+        if(empty($this->messageProvider)){
+            throw new \Exception("otpmanager config missed message_provider");
+        }
         $this->otpMessage=app()->make($this->messageProvider);
 
     }
@@ -119,11 +123,12 @@ class OTPManager
         return $userToken;
     }
 
-    private function findOTPasswordModelFromRequest(Request $request){
-        $userToken=$this->findUserToken($request);
+    public static function findOTPasswordModelFromRequest(Request $request){
+        $manager=new OTPManager();
+        $userToken=$manager->findUserToken($request);
         if(empty($userToken))
             return false;
-        $modelOTP=$this->findOTPasswordModelFromUserToken($userToken);
+        $modelOTP=$manager->findOTPasswordModelFromUserToken($userToken);
         return $modelOTP;
     }
 
@@ -185,7 +190,7 @@ class OTPManager
     }
 
     private function getVerifiedOTPModelFromRequest(Request $request){
-        $modelOTP=$this->findOTPasswordModelFromRequest($request);
+        $modelOTP=self::findOTPasswordModelFromRequest($request);
         if($modelOTP!==false){
             if($this->doesOTPModelVerified($modelOTP)===true){
 
@@ -215,6 +220,9 @@ class OTPManager
         if(empty($modelOTP)){
             return false;
         }
+
+        //todo not required!
+
         $manager->doLoggedInUser($modelOTP, $guard);
         return $modelOTP->user;
 
@@ -273,7 +281,7 @@ class OTPManager
         //todo remove cookie
 
         $manager=new OTPManager();
-        $modelOTP=$manager->findOTPasswordModelFromRequest($request);
+        $modelOTP=self::findOTPasswordModelFromRequest($request);
 
         if($modelOTP!==false){
             if ($modelOTP->hasVerified() || $modelOTP->isReady()) {
@@ -572,6 +580,16 @@ class OTPManager
         return null;
     }
 
+    public static function isVerified(Request $request){
+        $manager=new OTPManager();
+        $modelOTP=$manager->getVerifiedOTPModelFromRequest($request);
+        if($modelOTP!==false){
+            return true;
+        }
+
+        return false;
+    }
+
     public static function getCurrentVerifiedUser_Contact(Request $request){
         //get user_contact from request if verified
         $manager=new OTPManager();
@@ -597,7 +615,7 @@ class OTPManager
         $manager=new OTPManager();
 
         //find userToken and its otpassword-model
-        $otpModel=$manager->findOTPasswordModelFromRequest($request);
+        $otpModel=self::findOTPasswordModelFromRequest($request);
         if(empty($otpModel))
             return false;
 
