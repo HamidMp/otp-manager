@@ -5,89 +5,31 @@ namespace App\Http\Middleware;
 
 use Closure;
 use HamidMp\OTPManager\OTPManager;
-use Illuminate\Auth\AuthenticationException;
-use Illuminate\Contracts\Auth\Factory as Auth;
 
 class OTPManagerMiddleware
 {
-
-    /**
-     * The authentication factory instance.
-     *
-     * @var \Illuminate\Contracts\Auth\Factory
-     */
-    protected $auth;
-
-    /**
-     * Create a new middleware instance.
-     *
-     * @param  \Illuminate\Contracts\Auth\Factory  $auth
-     * @return void
-     */
-    public function __construct(Auth $auth)
-    {
-        $this->auth = $auth;
-    }
 
     /**
      * Handle an incoming request.
      *
      * @param  \Illuminate\Http\Request  $request
      * @param  \Closure  $next
-     * @param  string[]  ...$guards
+     * @param  boolean $hasVerified
      * @return mixed
-     *
-     * @throws \Illuminate\Auth\AuthenticationException
      */
-    public function handle($request, Closure $next, ...$guards)
+    public function handle($request, Closure $next, $hasVerified=true)
     {
-        $this->authenticate($request, $guards);
-
-        return $next($request);
-    }
-
-
-    /**
-     * Determine if the user is logged in to any of the given guards.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  array  $guards
-     * @return void
-     *
-     * @throws \Illuminate\Auth\AuthenticationException
-     */
-    protected function authenticate($request, array $guards)
-    {
-        if (empty($guards)) {
-            $guards = [null];
-        }
-
-
-        foreach ($guards as $guard) {
-            $res=OTPManager::checkAuthentication($request, $guard);
-            if (!empty($res)) {
-                return $res;
+        if($hasVerified) {
+            if(OTPManager::isVerified($request)!==true){
+                return $this->failed($request);
+            }
+        }else{
+            if(OTPManager::findOTPasswordModelFromRequest($request)===false){
+                return $this->failed($request);
             }
         }
 
-        return false;
-        $this->unauthenticated($request, $guards);
-    }
-
-    /**
-     * Handle an unauthenticated user.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  array  $guards
-     * @return void
-     *
-     * @throws \Illuminate\Auth\AuthenticationException
-     */
-    protected function unauthenticated($request, array $guards)
-    {
-        throw new AuthenticationException(
-            'Unauthenticated.', $guards, $this->redirectTo($request)
-        );
+        return $next($request);
     }
 
     /**
@@ -96,11 +38,13 @@ class OTPManagerMiddleware
      * @param  \Illuminate\Http\Request  $request
      * @return string|null
      */
-    protected function redirectTo($request)
+    protected function failed($request)
     {
         if (! $request->expectsJson()) {
             return route('login');
         }
+
+        return abort(403);
     }
 
 }
