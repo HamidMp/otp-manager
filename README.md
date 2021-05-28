@@ -27,7 +27,7 @@ bearer, cookie, session or request
 1. Publishing files:  
     
    ```shell script
-    artisan vendor:publish --tag otpmanager
+    php artisan vendor:publish --tag otpmanager
     ```
     It will copy the migration files (two files) and config file and middleware file.
       
@@ -64,30 +64,18 @@ bearer, cookie, session or request
 1. Cache the configs:
 
     ```shell script
-    artisan config:cache
+    php artisan config:cache
     ```
    
 1. Migrate the migrations
 
     ```shell script
-    artisan migrate
+    php artisan migrate
     ```
     It will create new taable 'otpassword' for storing OTP PINs and adding two fields in `user_model` table (step 3.2) for user contact value (like mobile) and OTP-token.
 
 
 ## Usage
-
-* Using middleware for checking user authentication
-
-    ```php
-    //routes/web.ph
-    
-    
-    Route::middleware([\App\Http\Middleware\OTPManagerMiddleware::class])
-        ->group(function () {
-            //...
-        });
-    ```
   
 * Taking user contact and generating new PIN and sending it
 
@@ -105,7 +93,7 @@ bearer, cookie, session or request
     $result = OTPManager::checkUserOTPAndVerification($request, $request->code);
     ```
   
-* You can use the OTPManager without user and then after verification assign a user to that verified request
+* You can use the OTPManager without user and then after verification assign a user to that verified request (then you can using 'auth:otpmanager' middleware for identity the user)
 
     ```php
     // App/Http/Controllers/SiteController
@@ -118,8 +106,46 @@ bearer, cookie, session or request
         OTPManager::assignUserTo($result,$user);
     }
     ```
+
+* Using _auth_ middleware for ensuring that user authenticated
+
+    ```php
+    //routes/web.php
+    
+    
+    Route::middleware('auth:otpmanager')
+        ->group(function () {
+            //...
+  
+            Route::get('/user',function (){
+                $user = \request()->user();
+                //or
+                $user = \Illuminate\Support\Facades\Auth::user();
+            });
+  
+        });
+    ```
+  
+* Using _OTPManagerMiddleware_ middleware for checking verification (first step or complete)
+
+    ```php
+    //routes/web.php
+    
+    
+    Route::middleware([\App\Http\Middleware\OTPManagerMiddleware::class])
+        ->group(function () {
+            //OTP verification has passed completely
+              
+        });
+    
+    Route::middleware('\App\Http\Middleware\OTPManagerMiddleware:false')
+        ->group(function () {
+            //OTP verification has passed its fist step at least (sending PIN code and having Token)
+              
+        });
+    ```
  
 
 ## License
 
-The DualSource library is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+The **otp-manager** library is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
