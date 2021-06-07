@@ -189,13 +189,14 @@ class OTPManager
         return false;
     }
 
-    public function getVerifiedOTPModelFromRequest(Request $request){
+    public static function getVerifiedOTPModelFromRequest(Request $request){
+        $manager=new OTPManager();
         $modelOTP=self::findOTPasswordModelFromRequest($request);
         if($modelOTP!==false){
-            if($this->doesOTPModelVerified($modelOTP)===true){
+            if($manager->doesOTPModelVerified($modelOTP)===true){
 
                 //check same ip
-                if($this->shouldCheckIP){
+                if($manager->shouldCheckIP){
                     if($modelOTP->user_ip!=$request->ip()) {
                         return false;
                     }
