@@ -189,7 +189,7 @@ class OTPManager
         return false;
     }
 
-    private function getVerifiedOTPModelFromRequest(Request $request){
+    public function getVerifiedOTPModelFromRequest(Request $request){
         $modelOTP=self::findOTPasswordModelFromRequest($request);
         if($modelOTP!==false){
             if($this->doesOTPModelVerified($modelOTP)===true){
